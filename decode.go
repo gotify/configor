@@ -1,31 +1,32 @@
 package configor
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/go-yaml/yaml"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 )
 
 // UnmarshalFile attempts to decode the given file as a yaml, toml or json based
 // on the file extension. If the extension isn't one of those, it will error.
 func UnmarshalFile(config interface{}, file string, errorOnUnmatchedKeys bool) (err error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
 	switch {
 	case strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml"):
+		dec := yaml.NewDecoder(bytes.NewReader(data))
 		if errorOnUnmatchedKeys {
-			return yaml.UnmarshalStrict(data, config)
+			dec.KnownFields(true)
 		}
-		return yaml.Unmarshal(data, config)
+		return dec.Decode(config)
 
 	case strings.HasSuffix(file, ".toml"):
 		return unmarshalToml(data, config, errorOnUnmatchedKeys)
